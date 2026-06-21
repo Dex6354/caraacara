@@ -179,26 +179,69 @@
         const topbar = document.getElementById('topbar');
 
         // ==========================================
+        // PERSISTÊNCIA DE ESTADO LOCAL
+        // ==========================================
+        function saveGameState() {
+            if (!roomCode) return;
+            localStorage.setItem(`cara_score_${roomCode}`, JSON.stringify(score));
+            localStorage.setItem(`cara_my_char_${roomCode}`, selectedCharacterId || '');
+            localStorage.setItem(`cara_opp_char_${roomCode}`, opponentCharacterId || '');
+            
+            const flipped = [];
+            characters.forEach(char => {
+                const card = document.getElementById(`board-card-${char.id}`);
+                if (card && card.classList.contains('card-flipped')) {
+                    flipped.push(char.id);
+                }
+            });
+            localStorage.setItem(`cara_flipped_${roomCode}`, JSON.stringify(flipped));
+        }
+
+        function loadGameState() {
+            if (!roomCode) return;
+            const savedScore = localStorage.getItem(`cara_score_${roomCode}`);
+            if (savedScore) score = JSON.parse(savedScore);
+            
+            const savedMyChar = localStorage.getItem(`cara_my_char_${roomCode}`);
+            if (savedMyChar) selectedCharacterId = parseInt(savedMyChar);
+
+            const savedOppChar = localStorage.getItem(`cara_opp_char_${roomCode}`);
+            if (savedOppChar) opponentCharacterId = parseInt(savedOppChar);
+            
+            updateScoreboardVisual();
+        }
+
+        function restoreFlippedCards() {
+            const savedFlipped = localStorage.getItem(`cara_flipped_${roomCode}`);
+            if (savedFlipped) {
+                const flippedIds = JSON.parse(savedFlipped);
+                flippedIds.forEach(id => {
+                    const card = document.getElementById(`board-card-${id}`);
+                    if (card) card.classList.add('card-flipped');
+                });
+            }
+        }
+
+        // ==========================================
         // REDIRECIONAMENTO E ENTRADA AUTOMÁTICA
         // ==========================================
         const urlParams = new URLSearchParams(window.location.search);
         let roomCode = urlParams.get('room');
 
         if (!roomCode) {
-            // Se entrar na Home pura, gera o link imediatamente e redireciona
             const generatedCode = 'CARA-' + Math.random().toString(36).substring(2, 7).toUpperCase();
             localStorage.setItem('hosted_room', generatedCode);
             window.location.href = window.location.origin + window.location.pathname + '?room=' + generatedCode;
         } else {
-            // Renderiza o ID da sala no topo
             document.getElementById('topbar-room-id').innerText = roomCode;
             
-            // Correção Crítica: O cargo agora é estritamente baseado no criador da sala atual
             if (roomCode === localStorage.getItem('hosted_room')) {
                 myRole = 'red';
             } else {
                 myRole = 'blue';
             }
+
+            loadGameState();
 
             if (myRole === 'red') {
                 initHost(roomCode);
@@ -215,7 +258,6 @@
         // ==========================================
         // GESTÃO DE CONEXÕES E STATUS ONLINE
         // ==========================================
-
         function updatePresenceUI(p1Online, p2Online) {
             const dotP1 = document.getElementById('status-dot-p1');
             const textP1 = document.getElementById('status-text-p1');
@@ -288,12 +330,29 @@
             conn.on('open', () => {
                 updatePresenceUI(true, true);
                 setupTheme();
-                startSelectionStage();
+                
+                // Se o jogador deu F5 e já tinha um personagem secreto, avisa o oponente
+                if (selectedCharacterId) {
+                    conn.send({ type: 'SYNC_CHARACTER', id: selectedCharacterId, isReconnect: true });
+                }
+
+                if (selectedCharacterId && opponentCharacterId) {
+                    buildGameBoard();
+                    restoreFlippedCards();
+                } else {
+                    startSelectionStage();
+                }
             });
 
             conn.on('data', (data) => {
                 if (data.type === 'SYNC_CHARACTER') {
                     opponentCharacterId = data.id;
+                    saveGameState();
+                    
+                    // Devolve o próprio personagem se o parceiro tiver sofrido reconexão
+                    if (data.isReconnect && selectedCharacterId) {
+                        conn.send({ type: 'SYNC_CHARACTER', id: selectedCharacterId });
+                    }
                     checkBothSelected();
                 } else if (data.type === 'GAME_OVER') {
                     applyGameOver(data.winner, data.redCharId, data.blueCharId);
@@ -323,13 +382,18 @@
         }
 
         function leaveRoom() {
+            if (roomCode) {
+                localStorage.removeItem(`cara_score_${roomCode}`);
+                localStorage.removeItem(`cara_my_char_${roomCode}`);
+                localStorage.removeItem(`cara_opp_char_${roomCode}`);
+                localStorage.removeItem(`cara_flipped_${roomCode}`);
+            }
             localStorage.removeItem('hosted_room');
             if (conn) conn.close();
             if (peer) peer.destroy();
             window.location.href = window.location.origin + window.location.pathname;
         }
 
-        // Correção do link de compartilhamento para puxar o código correto dinamicamente
         function copyLink() {
             const shareLink = window.location.origin + window.location.pathname + '?room=' + roomCode;
             navigator.clipboard.writeText(shareLink).then(() => {
@@ -340,7 +404,6 @@
         // ==========================================
         // MECÂNICAS VISUAIS E DE JOGO
         // ==========================================
-
         function setupTheme() {
             if (myRole === 'red') {
                 topbar.className = "bg-red-950 p-3 border-b-4 border-red-700 shadow-md sticky top-0 z-40 text-white";
@@ -384,23 +447,32 @@
             btn.disabled = true;
             btn.className = "w-full bg-slate-700 text-slate-400 font-bold py-3 px-6 rounded-xl cursor-not-allowed text-sm";
             btn.innerText = "Selecione um Personagem acima";
+
+            if (selectedCharacterId) {
+                selectCharacter(selectedCharacterId);
+            }
         }
 
         function selectCharacter(id) {
             if (selectedCharacterId) {
-                document.getElementById(`select-card-${selectedCharacterId}`).classList.remove('border-amber-400', 'bg-slate-700', 'scale-105');
+                const prev = document.getElementById(`select-card-${selectedCharacterId}`);
+                if (prev) prev.classList.remove('border-amber-400', 'bg-slate-700', 'scale-105');
             }
             selectedCharacterId = id;
-            document.getElementById(`select-card-${id}`).classList.add('border-amber-400', 'bg-slate-700', 'scale-105');
+            const current = document.getElementById(`select-card-${id}`);
+            if (current) current.classList.add('border-amber-400', 'bg-slate-700', 'scale-105');
             
             const btn = document.getElementById('btn-confirm-character');
             btn.disabled = false;
             btn.className = "w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold py-3 px-6 rounded-xl cursor-pointer transition shadow-lg text-sm";
             btn.innerText = "Confirmar Meu Personagem";
+            
+            saveGameState();
         }
 
         function confirmCharacter() {
             conn.send({ type: 'SYNC_CHARACTER', id: selectedCharacterId });
+            saveGameState();
             
             const btn = document.getElementById('btn-confirm-character');
             btn.disabled = true;
@@ -408,16 +480,19 @@
             btn.innerText = "Aguardando oponente escolher...";
 
             characters.forEach(char => {
-                document.getElementById(`select-card-${char.id}`).onclick = null;
+                const card = document.getElementById(`select-card-${char.id}`);
+                if (card) card.onclick = null;
             });
 
             checkBothSelected();
         }
 
         function checkBothSelected() {
-            const myChoiceConfirmed = document.getElementById('btn-confirm-character').disabled && opponentCharacterId;
-            if (selectedCharacterId && opponentCharacterId && myChoiceConfirmed) {
-                buildGameBoard();
+            if (selectedCharacterId && opponentCharacterId) {
+                if (screenGame.classList.contains('hidden')) {
+                    buildGameBoard();
+                    restoreFlippedCards();
+                }
             }
         }
 
@@ -454,6 +529,7 @@
                 triggerFinalAccusation(id);
             } else {
                 document.getElementById(`board-card-${id}`).classList.toggle('card-flipped');
+                saveGameState();
             }
         }
 
@@ -510,7 +586,7 @@
         function applyGameOver(winner, redCharId, blueCharId) {
             if (winner === 'red') score.red++;
             if (winner === 'blue') score.blue++;
-            updateScoreboardVisual();
+            saveGameState();
 
             const box = document.getElementById('game-over-box');
             const title = document.getElementById('game-over-title');
@@ -563,6 +639,9 @@
             if (localPlayerReadyForNext && opponentReadyForNext) {
                 selectedCharacterId = null;
                 opponentCharacterId = null;
+                localStorage.removeItem(`cara_my_char_${roomCode}`);
+                localStorage.removeItem(`cara_opp_char_${roomCode}`);
+                localStorage.removeItem(`cara_flipped_${roomCode}`);
                 startSelectionStage();
             }
         }
