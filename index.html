@@ -82,7 +82,9 @@
         <div id="screen-game" class="hidden w-full space-y-3">
             <div class="flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700 shadow">
                 <div class="flex items-center space-x-3">
-                    <img id="my-secret-avatar" src="" class="w-12 h-16 rounded-lg border border-slate-600 object-cover" />
+                    <div id="my-secret-avatar-bg" class="w-12 h-16 rounded-lg border border-slate-600 bg-cover bg-center flex items-center justify-center overflow-hidden">
+                        <img id="my-secret-avatar" src="" class="w-full h-auto drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)]" />
+                    </div>
                     <div>
                         <p class="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Seu Personagem</p>
                         <p id="my-secret-name" class="font-bold text-sm text-white"></p>
@@ -130,12 +132,16 @@
                     <div class="flex justify-around items-center">
                         <div class="text-center">
                             <p class="text-[10px] text-red-400 font-bold">Vermelho era:</p>
-                            <img id="reveal-red-img" class="w-16 h-20 mx-auto rounded-lg my-1 border border-slate-700 object-cover">
+                            <div id="reveal-red-bg" class="w-16 h-20 mx-auto rounded-lg my-1 border border-slate-700 bg-cover bg-center flex items-center justify-center overflow-hidden">
+                                <img id="reveal-red-img" class="w-full h-auto drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)]">
+                            </div>
                             <p id="reveal-red-name" class="text-xs font-bold"></p>
                         </div>
                         <div class="text-center">
                             <p class="text-[10px] text-blue-400 font-bold">Azul era:</p>
-                            <img id="reveal-blue-img" class="w-16 h-20 mx-auto rounded-lg my-1 border border-slate-700 object-cover">
+                            <div id="reveal-blue-bg" class="w-16 h-20 mx-auto rounded-lg my-1 border border-slate-700 bg-cover bg-center flex items-center justify-center overflow-hidden">
+                                <img id="reveal-blue-img" class="w-full h-auto drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)]">
+                            </div>
                             <p id="reveal-blue-name" class="text-xs font-bold"></p>
                         </div>
                     </div>
@@ -416,7 +422,7 @@
             });
         }
 
-        UX_THEME_BG = '';
+        let UX_THEME_BG = '';
 
         function setupTheme() {
             UX_THEME_BG = myRole === 'red' ? 'img/fundovermelho.png' : 'img/fundoazul.png';
@@ -456,7 +462,9 @@
                 card.className = "bg-slate-800 p-1 rounded-xl border border-slate-700 flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all shadow";
                 card.onclick = () => selectCharacter(char.id);
                 card.innerHTML = `
-                    <img src="${char.url}" style="background-image: url('${bgUrl}'); background-size: cover; background-position: center;" class="w-full h-auto rounded-lg border border-slate-700" loading="lazy" />
+                    <div style="background-image: url('${bgUrl}'); background-size: cover; background-position: center;" class="w-full rounded-lg border border-slate-700 overflow-hidden">
+                        <img src="${char.url}" class="w-full h-auto drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)]" loading="lazy" />
+                    </div>
                 `;
                 selectGrid.appendChild(card);
             });
@@ -527,12 +535,8 @@
             const myChar = characters.find(c => c.id === selectedCharacterId);
             const myBgUrl = myRole === 'red' ? 'img/fundovermelho.png' : 'img/fundoazul.png';
             
-            const myAvatar = document.getElementById('my-secret-avatar');
-            myAvatar.src = myChar.url;
-            myAvatar.style.backgroundImage = `url('${myBgUrl}')`;
-            myAvatar.style.backgroundSize = 'cover';
-            myAvatar.style.backgroundPosition = 'center';
-            
+            document.getElementById('my-secret-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
+            document.getElementById('my-secret-avatar').src = myChar.url;
             document.getElementById('my-secret-name').innerText = myChar.name;
 
             const boardGrid = document.getElementById('board-grid');
@@ -546,7 +550,9 @@
                 card.className = `bg-slate-800 p-1 rounded-xl border border-slate-700 flex flex-col items-center justify-center cursor-pointer transition-all ${highlightBorder} shadow`;
                 card.onclick = () => handleCardClick(char.id);
                 card.innerHTML = `
-                    <img src="${char.url}" style="background-image: url('${myBgUrl}'); background-size: cover; background-position: center;" class="w-full h-auto rounded-lg border border-slate-700 pointer-events-none" />
+                    <div style="background-image: url('${myBgUrl}'); background-size: cover; background-position: center;" class="w-full rounded-lg border border-slate-700 overflow-hidden pointer-events-none">
+                        <img src="${char.url}" class="w-full h-auto drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)]" />
+                    </div>
                 `;
                 boardGrid.appendChild(card);
             });
@@ -572,7 +578,7 @@
                 btn.className = "w-full bg-amber-500 text-slate-950 font-black py-2.5 rounded-xl text-xs transition animate-pulse shadow-lg shadow-amber-500/20";
                 btn.innerText = "🎯 CLIQUE NO SUSPEITO PARA ACUSAR!";
             } else {
-                btn.className = "w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition border border-slate-700/50";
+                btn.className = "w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition border border-slate-700 shadow shadow-amber-500/10";
                 btn.innerText = "🎯 Dar Palpite Final (Acusar Suspeito)";
             }
         }
@@ -668,18 +674,12 @@
             const rChar = characters.find(c => c.id === redCharId);
             const bChar = characters.find(c => c.id === blueCharId);
 
-            const redImg = document.getElementById('reveal-red-img');
-            redImg.src = rChar.url;
-            redImg.style.backgroundImage = "url('img/fundovermelho.png')";
-            redImg.style.backgroundSize = "cover";
-            redImg.style.backgroundPosition = "center";
+            document.getElementById('reveal-red-bg').style.backgroundImage = "url('img/fundovermelho.png')";
+            document.getElementById('reveal-red-img').src = rChar.url;
             document.getElementById('reveal-red-name').innerText = rChar.name;
 
-            const blueImg = document.getElementById('reveal-blue-img');
-            blueImg.src = bChar.url;
-            blueImg.style.backgroundImage = "url('img/fundoazul.png')";
-            blueImg.style.backgroundSize = "cover";
-            blueImg.style.backgroundPosition = "center";
+            document.getElementById('reveal-blue-bg').style.backgroundImage = "url('img/fundoazul.png')";
+            document.getElementById('reveal-blue-img').src = bChar.url;
             document.getElementById('reveal-blue-name').innerText = bChar.name;
 
             localPlayerReadyForNext = false;
