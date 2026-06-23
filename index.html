@@ -125,6 +125,11 @@
                         Confirmar
                     </button>
                 </div>
+                <div id="char-waiting-buttons" class="hidden pt-2">
+                    <button onclick="cancelCharacterConfirmation()" class="w-full bg-slate-700 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-xs transition border border-slate-600">
+                        🔄 Trocar Personagem
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -197,7 +202,7 @@
             { id: 4, name: "Bernardo", url: "img/04.png" },
             { id: 5, name: "Carlos", url: "img/05.png" },
             { id: 6, name: "Daniela", url: "img/06.png" },
-            { id: 7, text: "Eduardo", url: "img/07.png" },
+            { id: 7, name: "Eduardo", url: "img/07.png" },
             { id: 8, name: "Felipe", url: "img/08.png" },
             { id: 9, name: "Gabriela", url: "img/09.png" },
             { id: 10, name: "Gustavo", url: "img/10.png" },
@@ -530,6 +535,29 @@
                 `;
                 selectGrid.appendChild(card);
             });
+
+            if (selectedCharacterId) {
+                const current = document.getElementById(`select-card-${selectedCharacterId}`);
+                if (current) current.classList.add('border-amber-400', 'bg-slate-700', 'scale-105');
+                
+                document.getElementById('select-screen-title').innerText = "Aguardando oponente escolher...";
+                
+                temporarySelectedId = selectedCharacterId;
+                const char = characters.find(c => c.id === selectedCharacterId);
+                
+                document.getElementById('char-confirm-title').innerText = "Aguardando oponente escolher...";
+                document.getElementById('char-confirm-buttons').classList.add('hidden');
+                document.getElementById('char-waiting-buttons').classList.remove('hidden');
+                
+                document.getElementById('char-confirm-modal-bg').style.backgroundImage = `url('${bgUrl}')`;
+                document.getElementById('char-confirm-modal-img').src = char.url;
+                document.getElementById('char-confirm-modal').classList.remove('hidden');
+                
+                characters.forEach(c => {
+                    const card = document.getElementById(`select-card-${c.id}`);
+                    if (card) card.onclick = null;
+                });
+            }
         }
 
         function selectCharacter(id) {
@@ -539,6 +567,7 @@
             
             document.getElementById('char-confirm-title').innerText = "CONFIRMAR PERSONAGEM?";
             document.getElementById('char-confirm-buttons').classList.remove('hidden');
+            document.getElementById('char-waiting-buttons').classList.add('hidden');
             
             document.getElementById('char-confirm-modal-bg').style.backgroundImage = `url('${bgUrl}')`;
             document.getElementById('char-confirm-modal-img').src = char.url;
@@ -556,11 +585,14 @@
 
             document.getElementById('char-confirm-title').innerText = "Aguardando oponente escolher...";
             document.getElementById('char-confirm-buttons').classList.add('hidden');
+            document.getElementById('char-waiting-buttons').classList.remove('hidden');
 
             const current = document.getElementById(`select-card-${selectedCharacterId}`);
             if (current) current.classList.add('border-amber-400', 'bg-slate-700', 'scale-105');
 
-            conn.send({ type: 'SYNC_CHARACTER', id: selectedCharacterId });
+            if (conn && conn.open) {
+                conn.send({ type: 'SYNC_CHARACTER', id: selectedCharacterId });
+            }
             saveGameState();
             
             document.getElementById('select-screen-title').innerText = "Aguardando oponente escolher...";
@@ -571,6 +603,19 @@
             });
 
             checkBothSelected();
+        }
+
+        function cancelCharacterConfirmation() {
+            selectedCharacterId = null;
+            temporarySelectedId = null;
+            saveGameState();
+            
+            if (conn && conn.open) {
+                conn.send({ type: 'SYNC_CHARACTER', id: null });
+            }
+            
+            document.getElementById('char-confirm-modal').classList.add('hidden');
+            startSelectionStage();
         }
 
         function checkBothSelected() {
