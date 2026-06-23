@@ -63,6 +63,7 @@
                         <span id="status-dot-p1" class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
                         <span id="status-text-p1" class="text-[10px] text-rose-400 font-bold font-mono">Offline</span>
                     </div>
+                    <div id="count-red-box" class="text-[10px] text-slate-400 font-bold mt-1 hidden">Restam: <span id="count-red" class="text-amber-400 font-mono">24</span></div>
                 </div>
 
                 <div class="select-none shrink-0 py-0.5 self-center flex items-center space-x-2">
@@ -77,6 +78,7 @@
                         <span id="status-text-p2" class="text-[10px] text-rose-400 font-bold font-mono">Offline</span>
                         <span id="status-dot-p2" class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
                     </div>
+                    <div id="count-blue-box" class="text-[10px] text-slate-400 font-bold mt-1 hidden">Restam: <span id="count-blue" class="text-amber-400 font-mono">24</span></div>
                 </div>
             </div>
 
@@ -462,6 +464,7 @@
                 } else if (selectedCharacterId && opponentCharacterId) {
                     buildGameBoard();
                     restoreFlippedCards();
+                    updateRemainingCount();
                 } else {
                     startSelectionStage();
                 }
@@ -493,6 +496,10 @@
                 } else if (data.type === 'TURN_CHANGED') {
                     isMyTurn = true;
                     updateTurnUI();
+                } else if (data.type === 'UPDATE_COUNT') {
+                    const oppCountId = myRole === 'red' ? 'count-blue' : 'count-red';
+                    const el = document.getElementById(oppCountId);
+                    if (el) el.innerText = data.count;
                 }
             });
 
@@ -576,6 +583,8 @@
             document.getElementById('char-confirm-modal').classList.add('hidden');
             
             document.getElementById('game-scoreboard').classList.remove('hidden');
+            document.getElementById('count-red-box').classList.add('hidden');
+            document.getElementById('count-blue-box').classList.add('hidden');
             
             const resetPlacar = (bg, img, placeholder) => {
                 document.getElementById(bg).style.backgroundImage = "none";
@@ -713,6 +722,7 @@
                 if (screenGame.classList.contains('hidden')) {
                     buildGameBoard();
                     restoreFlippedCards();
+                    updateRemainingCount();
                 }
             }
         }
@@ -741,11 +751,26 @@
             });
         }
 
+        function updateRemainingCount() {
+            const flippedCount = document.querySelectorAll('#board-grid .card-flipped').length;
+            const remaining = characters.length - flippedCount;
+            
+            const myCountId = myRole === 'red' ? 'count-red' : 'count-blue';
+            const el = document.getElementById(myCountId);
+            if (el) el.innerText = remaining;
+            
+            if (conn && conn.open) {
+                conn.send({ type: 'UPDATE_COUNT', count: remaining });
+            }
+        }
+
         function buildGameBoard() {
             document.getElementById('char-confirm-modal').classList.add('hidden');
             screenLobby.classList.add('hidden'); 
             screenSelect.classList.add('hidden');
             document.getElementById('game-scoreboard').classList.remove('hidden');
+            document.getElementById('count-red-box').classList.remove('hidden');
+            document.getElementById('count-blue-box').classList.remove('hidden');
             screenGame.classList.remove('hidden');
             isGuessMode = false;
             updateGuessButtonUI();
@@ -783,6 +808,7 @@
             } else {
                 document.getElementById(`board-card-${id}`).classList.toggle('card-flipped');
                 saveGameState();
+                updateRemainingCount();
             }
         }
 
