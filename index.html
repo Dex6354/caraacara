@@ -746,16 +746,7 @@
                 document.getElementById(`${p}avatar-placeholder`).classList.add('hidden');
             });
 
-            oponPrefixos.forEach(p => {
-                const bgEl = document.getElementById(`${p}avatar-bg`);
-                if (bgEl) {
-                    bgEl.style.backgroundImage = "none";
-                    bgEl.classList.remove('border-green-500');
-                    bgEl.classList.add('border-slate-700');
-                }
-                document.getElementById(`${p}avatar`).classList.add('hidden');
-                document.getElementById(`${p}avatar-placeholder`).classList.add('hidden');
-            });
+            // Removido o código que ocultava o placeholder do oponente
         }
 
         function updateRemainingCount() {
