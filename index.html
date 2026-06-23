@@ -443,10 +443,10 @@
         }
 
         function handleEvents() {
-            const currentConn = conn; // Armazena a referencia exata desta conexao ativa
+            const currentConn = conn;
 
             function onConnOpen() {
-                if (conn !== currentConn) return; // Ignora se nao for mais a conexao ativa global
+                if (conn !== currentConn) return; 
                 updatePresenceUI(true, true);
                 setupTheme();
                 
@@ -472,7 +472,7 @@
             }
 
             currentConn.on('data', (data) => {
-                if (conn !== currentConn) return; // Ignora se nao for mais a conexao ativa global
+                if (conn !== currentConn) return; 
                 if (data.type === 'SYNC_CHARACTER') {
                     opponentCharacterId = data.id;
                     saveGameState();
@@ -494,7 +494,7 @@
             });
 
             currentConn.on('close', () => {
-                if (conn !== currentConn) return; // Ignora se o evento disparado pertence a uma conexao antiga
+                if (conn !== currentConn) return; 
                 if (myRole === 'red') {
                     updatePresenceUI(true, false);
                 } else {
@@ -502,26 +502,24 @@
                 }
                 
                 const savedGameOver = localStorage.getItem(`cara_game_over_${roomCode}`);
-                if (savedGameOver) {
-                    return;
-                }
-                
-                if (selectedCharacterId && opponentCharacterId) {
-                    const btnTurn = document.getElementById('btn-turn');
-                    if (btnTurn) {
-                        btnTurn.disabled = true;
-                        btnTurn.innerText = "⏳ OPONENTE DESCONECTADO (Aguardando retorno...)";
-                        btnTurn.className = "w-full bg-slate-800 text-rose-400 font-bold py-2.5 rounded-xl text-xs transition border border-rose-900/50 cursor-not-allowed";
+                if (!savedGameOver) {
+                    if (selectedCharacterId && opponentCharacterId) {
+                        const btnTurn = document.getElementById('btn-turn');
+                        if (btnTurn) {
+                            btnTurn.disabled = true;
+                            btnTurn.innerText = "⏳ OPONENTE DESCONECTADO (Aguardando retorno...)";
+                            btnTurn.className = "w-full bg-slate-800 text-rose-400 font-bold py-2.5 rounded-xl text-xs transition border border-rose-900/50 cursor-not-allowed";
+                        }
+                    } else {
+                        screenGame.classList.add('hidden');
+                        screenSelect.classList.add('hidden');
+                        document.getElementById('game-scoreboard').classList.add('hidden');
+                        document.getElementById('game-over-screen').classList.add('hidden');
+                        document.getElementById('confirm-modal').classList.add('hidden');
+                        document.getElementById('char-confirm-modal').classList.add('hidden');
+                        screenLobby.classList.remove('hidden');
+                        document.getElementById('connection-status').innerText = "Oponente desconectou. Aguardando retorno...";
                     }
-                } else {
-                    screenGame.classList.add('hidden');
-                    screenSelect.classList.add('hidden');
-                    document.getElementById('game-scoreboard').classList.add('hidden');
-                    document.getElementById('game-over-screen').classList.add('hidden');
-                    document.getElementById('confirm-modal').classList.add('hidden');
-                    document.getElementById('char-confirm-modal').classList.add('hidden');
-                    screenLobby.classList.remove('hidden');
-                    document.getElementById('connection-status').innerText = "Oponente desconectou. Aguardando retorno...";
                 }
                 
                 if (myRole === 'blue') {
