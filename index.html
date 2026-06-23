@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" class="w-full" content="width=device-width, initial-scale=1.0">
     <title>Cara a Cara - Clássico Multiplayer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -67,10 +67,10 @@
             
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-2xl flex items-center justify-between w-full relative overflow-hidden">
                 
-                <div class="flex items-center space-x-2 w-[44%] min-w-0">
-                    <div id="p1-avatar-bg" class="w-12 h-16 rounded-lg border border-slate-600 bg-cover bg-center flex items-center justify-center overflow-hidden shrink-0 shadow bg-slate-950">
-                        <img id="p1-avatar" src="" class="max-w-full max-h-full object-contain drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)] hidden" />
-                        <span id="p1-avatar-placeholder" class="text-xl font-black text-slate-600 font-mono">?</span>
+                <div class="flex items-center space-x-2 flex-1 min-w-0">
+                    <div id="p1-avatar-bg" class="w-24 h-32 p-1 rounded-xl border border-slate-700 bg-cover bg-center flex items-center justify-center overflow-hidden shrink-0 shadow bg-slate-950">
+                        <img id="p1-avatar" src="" class="w-full h-auto object-contain drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)] hidden" />
+                        <span id="p1-avatar-placeholder" class="text-3xl font-black text-slate-600 font-mono">?</span>
                     </div>
                     <div class="flex flex-col min-w-0 leading-tight">
                         <div class="flex items-center space-x-1 min-w-0">
@@ -84,11 +84,11 @@
                     </div>
                 </div>
 
-                <div class="w-[12%] flex justify-center items-center select-none shrink-0">
+                <div class="px-2 flex justify-center items-center select-none shrink-0">
                     <span class="bg-gradient-to-r from-red-500 to-blue-500 text-transparent bg-clip-text font-black italic text-base tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">VS</span>
                 </div>
 
-                <div class="flex items-center justify-end space-x-2 w-[44%] min-w-0 text-right">
+                <div class="flex items-center justify-end space-x-2 flex-1 min-w-0 text-right">
                     <div class="flex flex-col items-end min-w-0 leading-tight">
                         <div class="flex items-center space-x-1 justify-end min-w-0">
                             <span class="text-blue-400 font-black text-xs tracking-wide whitespace-nowrap">P2 (Azul)</span>
@@ -99,9 +99,9 @@
                             <span id="status-dot-p2" class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
                         </div>
                     </div>
-                    <div id="p2-avatar-bg" class="w-12 h-16 rounded-lg border border-slate-600 bg-cover bg-center flex items-center justify-center overflow-hidden shrink-0 shadow bg-slate-950">
-                        <img id="p2-avatar" src="" class="max-w-full max-h-full object-contain drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)] hidden" />
-                        <span id="p2-avatar-placeholder" class="text-xl font-black text-slate-600 font-mono">?</span>
+                    <div id="p2-avatar-bg" class="w-24 h-32 p-1 rounded-xl border border-slate-700 bg-cover bg-center flex items-center justify-center overflow-hidden shrink-0 shadow bg-slate-950">
+                        <img id="p2-avatar" src="" class="w-full h-auto object-contain drop-shadow-[0_4px_4px_rgba(0,0,0,0.65)] hidden" />
+                        <span id="p2-avatar-placeholder" class="text-3xl font-black text-slate-600 font-mono">?</span>
                     </div>
                 </div>
 
@@ -425,7 +425,6 @@
                     updatePresenceUI(false, true);
                 }
                 
-                // Se o jogo já iniciou, mantemos a tela ativa para exibir o placar com status offline
                 if (selectedCharacterId && opponentCharacterId) {
                     const btnTurn = document.getElementById('btn-turn');
                     if (btnTurn) {
@@ -640,13 +639,13 @@
                 btn.innerText = "🎯 CLIQUE NO SUSPEITO PARA ACUSAR!";
             } else {
                 btn.className = "w-full bg-slate-800 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition border border-slate-700 shadow shadow-amber-500/10";
-                btn.innerText = "🎯 Dar Palpite Final (Acusar Suspeito)";
+                btn.innerText = "🎯 Dar Palpite Final (Accusar Suspeito)";
             }
         }
 
         function updateTurnUI() {
             const btnTurn = document.getElementById('btn-turn');
-            if (!conn || !conn.open) return; // Evita sobrescrever UI caso esteja offline
+            if (!conn || !conn.open) return;
             
             if (isMyTurn) {
                 btnTurn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-500/20 cursor-pointer";
