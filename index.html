@@ -17,7 +17,7 @@
 </head>
 <body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between transition-colors duration-500">
 
-    <header id="topbar" class="bg-slate-800 p-3 border-b-4 border-slate-700 shadow-md sticky top-0 z-50">
+    <header id="topbar" class="bg-slate-800 p-3 border-b-4 border-slate-700 shadow-md sticky top-0 z-40">
         <div class="max-w-md mx-auto">
             <div class="flex justify-between items-center relative">
                 <div class="flex flex-col">
@@ -38,10 +38,9 @@
 
     <main class="flex-grow flex flex-col items-center justify-center p-3 w-full max-w-md mx-auto mb-12">
         
-        <!-- Tela de Lobby configurada como Modal sobreposto -->
-        <div id="screen-lobby" class="fixed inset-0 bg-slate-950/80 z-40 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-            <div class="bg-slate-900 border-2 border-indigo-500 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl">
-                <h2 class="text-xl font-extrabold mb-2 text-indigo-400">Aguardando Conexão</h2>
+        <div id="screen-lobby" class="w-full space-y-6 text-center">
+            <div class="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+                <h2 class="text-xl font-extrabold mb-2">Aguardando Conexão</h2>
                 <p class="text-slate-400 text-xs mb-6">Envie o link da sala para seu oponente usando o botão de compartilhar no topo. O jogo começará assim que ele entrar!</p>
                 
                 <div id="connection-status" class="text-amber-400 text-xs font-medium animate-pulse">
@@ -64,7 +63,7 @@
             </button>
         </div>
 
-        <div id="screen-game" class="w-full space-y-3">
+        <div id="screen-game" class="hidden w-full space-y-3">
             
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-2xl flex items-center justify-between w-full relative overflow-hidden">
                 
@@ -237,8 +236,8 @@
         function saveGameState() {
             if (!roomCode) return;
             localStorage.setItem(`cara_score_${roomCode}`, JSON.stringify(score));
-            localStorage.setItem(`cara_my_char_${roomCode}`, selectedCharacterId || '');
-            localStorage.setItem(`cara_opp_char_${roomCode}`, opponentCharacterId || '');
+            sessionStorage.setItem(`cara_my_char_${roomCode}`, selectedCharacterId || '');
+            sessionStorage.setItem(`cara_opp_char_${roomCode}`, opponentCharacterId || '');
             
             const flipped = [];
             characters.forEach(char => {
@@ -247,7 +246,7 @@
                     flipped.push(char.id);
                 }
             });
-            localStorage.setItem(`cara_flipped_${roomCode}`, JSON.stringify(flipped));
+            sessionStorage.setItem(`cara_flipped_${roomCode}`, JSON.stringify(flipped));
         }
 
         function loadGameState() {
@@ -255,17 +254,17 @@
             const savedScore = localStorage.getItem(`cara_score_${roomCode}`);
             if (savedScore) score = JSON.parse(savedScore);
             
-            const savedMyChar = localStorage.getItem(`cara_my_char_${roomCode}`);
+            const savedMyChar = sessionStorage.getItem(`cara_my_char_${roomCode}`);
             if (savedMyChar) selectedCharacterId = parseInt(savedMyChar);
 
-            const savedOppChar = localStorage.getItem(`cara_opp_char_${roomCode}`);
+            const savedOppChar = sessionStorage.getItem(`cara_opp_char_${roomCode}`);
             if (savedOppChar) opponentCharacterId = parseInt(savedOppChar);
             
             updateScoreboardVisual();
         }
 
         function restoreFlippedCards() {
-            const savedFlipped = localStorage.getItem(`cara_flipped_${roomCode}`);
+            const savedFlipped = sessionStorage.getItem(`cara_flipped_${roomCode}`);
             if (savedFlipped) {
                 const flippedIds = JSON.parse(savedFlipped);
                 flippedIds.forEach(id => {
@@ -280,20 +279,18 @@
 
         if (!roomCode) {
             const generatedCode = 'CARA-' + Math.random().toString(36).substring(2, 7).toUpperCase();
-            localStorage.setItem('hosted_room', generatedCode);
+            sessionStorage.setItem('hosted_room', generatedCode);
             window.location.href = window.location.origin + window.location.pathname + '?room=' + generatedCode;
         } else {
             document.getElementById('topbar-room-id').innerText = roomCode;
             
-            if (roomCode === localStorage.getItem('hosted_room')) {
+            if (roomCode === sessionStorage.getItem('hosted_room')) {
                 myRole = 'red';
             } else {
                 myRole = 'blue';
             }
 
             loadGameState();
-            setupTheme();
-            buildGameBoard(); // Renderiza o tabuleiro ao fundo no carregamento inicial
 
             if (myRole === 'red') {
                 initHost(roomCode);
@@ -433,12 +430,12 @@
                         btnTurn.className = "w-full bg-slate-800 text-rose-400 font-bold py-2.5 rounded-xl text-xs transition border border-rose-900/50 cursor-not-allowed";
                     }
                 } else {
+                    screenGame.classList.add('hidden');
                     screenSelect.classList.add('hidden');
                     document.getElementById('game-over-screen').classList.add('hidden');
                     document.getElementById('confirm-modal').classList.add('hidden');
                     document.getElementById('char-confirm-modal').classList.add('hidden');
                     screenLobby.classList.remove('hidden');
-                    buildGameBoard();
                     document.getElementById('connection-status').innerText = "Oponente desconectou. Aguardando retorno...";
                 }
                 
@@ -450,12 +447,11 @@
 
         function leaveRoom() {
             if (roomCode) {
-                localStorage.removeItem(`cara_score_${roomCode}`);
-                localStorage.removeItem(`cara_my_char_${roomCode}`);
-                localStorage.removeItem(`cara_opp_char_${roomCode}`);
-                localStorage.removeItem(`cara_flipped_${roomCode}`);
+                sessionStorage.removeItem(`cara_my_char_${roomCode}`);
+                sessionStorage.removeItem(`cara_opp_char_${roomCode}`);
+                sessionStorage.removeItem(`cara_flipped_${roomCode}`);
             }
-            localStorage.removeItem('hosted_room');
+            sessionStorage.removeItem('hosted_room');
             if (conn) conn.close();
             if (peer) peer.destroy();
             window.location.href = window.location.origin + window.location.pathname;
@@ -474,9 +470,9 @@
             UX_THEME_BG = myRole === 'red' ? 'img/fundovermelho.png' : 'img/fundoazul.png';
 
             if (myRole === 'red') {
-                topbar.className = "bg-red-950 p-3 border-b-4 border-red-700 shadow-md sticky top-0 z-50 text-white";
+                topbar.className = "bg-red-950 p-3 border-b-4 border-red-700 shadow-md sticky top-0 z-40 text-white";
             } else {
-                topbar.className = "bg-blue-950 p-3 border-b-4 border-blue-700 shadow-md sticky top-0 z-50 text-white";
+                topbar.className = "bg-blue-950 p-3 border-b-4 border-blue-700 shadow-md sticky top-0 z-40 text-white";
             }
             updateScoreboardVisual();
         }
@@ -559,56 +555,44 @@
 
         function checkBothSelected() {
             if (selectedCharacterId && opponentCharacterId) {
-                buildGameBoard();
-                restoreFlippedCards();
+                if (screenGame.classList.contains('hidden')) {
+                    buildGameBoard();
+                    restoreFlippedCards();
+                }
             }
         }
 
         function buildGameBoard() {
-            screenGame.classList.remove('hidden');
+            screenLobby.classList.add('hidden'); 
             screenSelect.classList.add('hidden');
-            
-            // Oculta o lobby apenas se ambos já estiverem conectados e selecionados
-            if (selectedCharacterId && opponentCharacterId) {
-                screenLobby.classList.add('hidden');
-            }
-            
+            screenGame.classList.remove('hidden');
             isGuessMode = false;
             updateGuessButtonUI();
 
             isMyTurn = (myRole === 'red');
             updateTurnUI();
 
-            const myChar = selectedCharacterId ? characters.find(c => c.id === selectedCharacterId) : null;
+            const myChar = characters.find(c => c.id === selectedCharacterId);
             const myBgUrl = myRole === 'red' ? 'img/fundovermelho.png' : 'img/fundoazul.png';
             
-            if (myChar) {
-                if (myRole === 'red') {
-                    document.getElementById('p1-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
-                    document.getElementById('p1-avatar').src = myChar.url;
-                    document.getElementById('p1-avatar').classList.remove('hidden');
-                    document.getElementById('p1-avatar-placeholder').classList.add('hidden');
+            if (myRole === 'red') {
+                document.getElementById('p1-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
+                document.getElementById('p1-avatar').src = myChar.url;
+                document.getElementById('p1-avatar').classList.remove('hidden');
+                document.getElementById('p1-avatar-placeholder').classList.add('hidden');
 
-                    document.getElementById('p2-avatar-bg').style.backgroundImage = "none";
-                    document.getElementById('p2-avatar').classList.add('hidden');
-                    document.getElementById('p2-avatar-placeholder').classList.remove('hidden');
-                } else {
-                    document.getElementById('p2-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
-                    document.getElementById('p2-avatar').src = myChar.url;
-                    document.getElementById('p2-avatar').classList.remove('hidden');
-                    document.getElementById('p2-avatar-placeholder').classList.add('hidden');
-
-                    document.getElementById('p1-avatar-bg').style.backgroundImage = "none";
-                    document.getElementById('p1-avatar').classList.add('hidden');
-                    document.getElementById('p1-avatar-placeholder').classList.remove('hidden');
-                }
-            } else {
-                document.getElementById('p1-avatar-bg').style.backgroundImage = "none";
-                document.getElementById('p1-avatar').classList.add('hidden');
-                document.getElementById('p1-avatar-placeholder').classList.remove('hidden');
                 document.getElementById('p2-avatar-bg').style.backgroundImage = "none";
                 document.getElementById('p2-avatar').classList.add('hidden');
                 document.getElementById('p2-avatar-placeholder').classList.remove('hidden');
+            } else {
+                document.getElementById('p2-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
+                document.getElementById('p2-avatar').src = myChar.url;
+                document.getElementById('p2-avatar').classList.remove('hidden');
+                document.getElementById('p2-avatar-placeholder').classList.add('hidden');
+
+                document.getElementById('p1-avatar-bg').style.backgroundImage = "none";
+                document.getElementById('p1-avatar').classList.add('hidden');
+                document.getElementById('p1-avatar-placeholder').classList.remove('hidden');
             }
 
             const boardGrid = document.getElementById('board-grid');
@@ -657,13 +641,7 @@
 
         function updateTurnUI() {
             const btnTurn = document.getElementById('btn-turn');
-            if (!btnTurn) return;
-            if (!conn || !conn.open) {
-                btnTurn.className = "w-full bg-slate-800 text-slate-500 font-bold py-2.5 rounded-xl text-xs transition border border-slate-700/50 cursor-not-allowed";
-                btnTurn.innerText = "⏳ AGUARDANDO CONEXÃO...";
-                btnTurn.disabled = true;
-                return;
-            }
+            if (!conn || !conn.open) return;
             
             if (isMyTurn) {
                 btnTurn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-500/20 cursor-pointer";
@@ -793,9 +771,9 @@
                 
                 document.getElementById('board-grid').innerHTML = '';
                 
-                localStorage.removeItem(`cara_my_char_${roomCode}`);
-                localStorage.removeItem(`cara_opp_char_${roomCode}`);
-                localStorage.removeItem(`cara_flipped_${roomCode}`);
+                sessionStorage.removeItem(`cara_my_char_${roomCode}`);
+                sessionStorage.removeItem(`cara_opp_char_${roomCode}`);
+                sessionStorage.removeItem(`cara_flipped_${roomCode}`);
                 startSelectionStage();
             }
         }
