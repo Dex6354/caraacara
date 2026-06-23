@@ -17,7 +17,7 @@
 </head>
 <body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between transition-colors duration-500">
 
-    <header id="topbar" class="bg-slate-800 p-3 border-b-4 border-slate-700 shadow-md sticky top-0 z-40">
+    <header id="topbar" class="bg-slate-800 p-3 border-b-4 border-slate-700 shadow-md sticky top-0 z-50">
         <div class="max-w-md mx-auto">
             <div class="flex justify-between items-center relative">
                 <div class="flex flex-col">
@@ -38,11 +38,11 @@
 
     <main class="flex-grow flex flex-col items-center justify-center p-3 w-full max-w-md mx-auto mb-12">
         
-        <!-- Tela de Lobby adaptada para funcionar como Janela Suspensa (Overlay Modal) -->
-        <div id="screen-lobby" class="fixed inset-0 bg-slate-950/80 z-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-            <div class="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 max-w-sm w-full space-y-4">
-                <h2 class="text-xl font-extrabold mb-2">Aguardando Conexão</h2>
-                <p class="text-slate-400 text-xs mb-4">Envie o link da sala para seu oponente usando o botão de compartilhar no topo. O jogo começará assim que ele entrar!</p>
+        <!-- Tela de Lobby configurada como Modal sobreposto -->
+        <div id="screen-lobby" class="fixed inset-0 bg-slate-950/80 z-40 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+            <div class="bg-slate-900 border-2 border-indigo-500 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl">
+                <h2 class="text-xl font-extrabold mb-2 text-indigo-400">Aguardando Conexão</h2>
+                <p class="text-slate-400 text-xs mb-6">Envie o link da sala para seu oponente usando o botão de compartilhar no topo. O jogo começará assim que ele entrar!</p>
                 
                 <div id="connection-status" class="text-amber-400 text-xs font-medium animate-pulse">
                     Procurando sinal do servidor P2P...
@@ -64,7 +64,7 @@
             </button>
         </div>
 
-        <div id="screen-game" class="hidden w-full space-y-3">
+        <div id="screen-game" class="w-full space-y-3">
             
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-2xl flex items-center justify-between w-full relative overflow-hidden">
                 
@@ -293,7 +293,7 @@
 
             loadGameState();
             setupTheme();
-            buildGameBoard(); // Gera e mostra o tabuleiro no fundo imediatamente
+            buildGameBoard(); // Renderiza o tabuleiro ao fundo no carregamento inicial
 
             if (myRole === 'red') {
                 initHost(roomCode);
@@ -344,6 +344,7 @@
             peer.on('open', () => {
                 document.getElementById('loading-peer').classList.add('hidden');
                 document.getElementById('connection-status').innerText = "Aguardando entrada do Jogador 2...";
+                setupTheme();
             });
 
             peer.on('connection', (connection) => {
@@ -377,6 +378,7 @@
         function handleEvents() {
             function onConnOpen() {
                 updatePresenceUI(true, true);
+                setupTheme();
                 
                 if (selectedCharacterId) {
                     conn.send({ type: 'SYNC_CHARACTER', id: selectedCharacterId, isReconnect: true });
@@ -435,9 +437,8 @@
                     document.getElementById('game-over-screen').classList.add('hidden');
                     document.getElementById('confirm-modal').classList.add('hidden');
                     document.getElementById('char-confirm-modal').classList.add('hidden');
-                    
-                    buildGameBoard(); // Mantém o tabuleiro visível ao fundo
                     screenLobby.classList.remove('hidden');
+                    buildGameBoard();
                     document.getElementById('connection-status').innerText = "Oponente desconectou. Aguardando retorno...";
                 }
                 
@@ -463,7 +464,7 @@
         function copyLink() {
             const shareLink = window.location.origin + window.location.pathname + '?room=' + roomCode;
             navigator.clipboard.writeText(shareLink).then(() => {
-                alert('Link da sala copied com sucesso!');
+                alert('Link da sala copiado com sucesso!');
             });
         }
 
@@ -473,9 +474,9 @@
             UX_THEME_BG = myRole === 'red' ? 'img/fundovermelho.png' : 'img/fundoazul.png';
 
             if (myRole === 'red') {
-                topbar.className = "bg-red-950 p-3 border-b-4 border-red-700 shadow-md sticky top-0 z-40 text-white";
+                topbar.className = "bg-red-950 p-3 border-b-4 border-red-700 shadow-md sticky top-0 z-50 text-white";
             } else {
-                topbar.className = "bg-blue-950 p-3 border-b-4 border-blue-700 shadow-md sticky top-0 z-40 text-white";
+                topbar.className = "bg-blue-950 p-3 border-b-4 border-blue-700 shadow-md sticky top-0 z-50 text-white";
             }
             updateScoreboardVisual();
         }
@@ -558,16 +559,20 @@
 
         function checkBothSelected() {
             if (selectedCharacterId && opponentCharacterId) {
-                if (screenGame.classList.contains('hidden')) {
-                    buildGameBoard();
-                    restoreFlippedCards();
-                }
+                buildGameBoard();
+                restoreFlippedCards();
             }
         }
 
         function buildGameBoard() {
-            // Remove o hidden para renderizar o tabuleiro em background
             screenGame.classList.remove('hidden');
+            screenSelect.classList.add('hidden');
+            
+            // Oculta o lobby apenas se ambos já estiverem conectados e selecionados
+            if (selectedCharacterId && opponentCharacterId) {
+                screenLobby.classList.add('hidden');
+            }
+            
             isGuessMode = false;
             updateGuessButtonUI();
 
@@ -577,34 +582,33 @@
             const myChar = selectedCharacterId ? characters.find(c => c.id === selectedCharacterId) : null;
             const myBgUrl = myRole === 'red' ? 'img/fundovermelho.png' : 'img/fundoazul.png';
             
-            if (myRole === 'red') {
-                document.getElementById('p1-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
-                if (myChar) {
+            if (myChar) {
+                if (myRole === 'red') {
+                    document.getElementById('p1-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
                     document.getElementById('p1-avatar').src = myChar.url;
                     document.getElementById('p1-avatar').classList.remove('hidden');
                     document.getElementById('p1-avatar-placeholder').classList.add('hidden');
-                } else {
-                    document.getElementById('p1-avatar').classList.add('hidden');
-                    document.getElementById('p1-avatar-placeholder').classList.remove('hidden');
-                }
 
-                document.getElementById('p2-avatar-bg').style.backgroundImage = "none";
-                document.getElementById('p2-avatar').classList.add('hidden');
-                document.getElementById('p2-avatar-placeholder').classList.remove('hidden');
-            } else {
-                document.getElementById('p2-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
-                if (myChar) {
+                    document.getElementById('p2-avatar-bg').style.backgroundImage = "none";
+                    document.getElementById('p2-avatar').classList.add('hidden');
+                    document.getElementById('p2-avatar-placeholder').classList.remove('hidden');
+                } else {
+                    document.getElementById('p2-avatar-bg').style.backgroundImage = `url('${myBgUrl}')`;
                     document.getElementById('p2-avatar').src = myChar.url;
                     document.getElementById('p2-avatar').classList.remove('hidden');
                     document.getElementById('p2-avatar-placeholder').classList.add('hidden');
-                } else {
-                    document.getElementById('p2-avatar').classList.add('hidden');
-                    document.getElementById('p2-avatar-placeholder').classList.remove('hidden');
-                }
 
+                    document.getElementById('p1-avatar-bg').style.backgroundImage = "none";
+                    document.getElementById('p1-avatar').classList.add('hidden');
+                    document.getElementById('p1-avatar-placeholder').classList.remove('hidden');
+                }
+            } else {
                 document.getElementById('p1-avatar-bg').style.backgroundImage = "none";
                 document.getElementById('p1-avatar').classList.add('hidden');
                 document.getElementById('p1-avatar-placeholder').classList.remove('hidden');
+                document.getElementById('p2-avatar-bg').style.backgroundImage = "none";
+                document.getElementById('p2-avatar').classList.add('hidden');
+                document.getElementById('p2-avatar-placeholder').classList.remove('hidden');
             }
 
             const boardGrid = document.getElementById('board-grid');
@@ -627,7 +631,6 @@
         }
 
         function handleCardClick(id) {
-            if (!conn || !conn.open) return; // Desativa cliques se não houver conexão ativa
             if (isGuessMode) {
                 triggerFinalAccusation(id);
             } else {
@@ -637,7 +640,6 @@
         }
 
         function toggleGuessMode() {
-            if (!conn || !conn.open) return;
             isGuessMode = !isGuessMode;
             updateGuessButtonUI();
         }
@@ -655,9 +657,10 @@
 
         function updateTurnUI() {
             const btnTurn = document.getElementById('btn-turn');
+            if (!btnTurn) return;
             if (!conn || !conn.open) {
                 btnTurn.className = "w-full bg-slate-800 text-slate-500 font-bold py-2.5 rounded-xl text-xs transition border border-slate-700/50 cursor-not-allowed";
-                btnTurn.innerText = "⏳ AGUARDANDO CONEXÃO DO OPONENTE...";
+                btnTurn.innerText = "⏳ AGUARDANDO CONEXÃO...";
                 btnTurn.disabled = true;
                 return;
             }
